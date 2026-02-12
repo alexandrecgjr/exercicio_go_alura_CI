@@ -10,9 +10,25 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   ci:
     runs-on: ubuntu-latest
+    
+    # O GitHub sobe o banco e garante que ele está saudável antes do teste
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v4
 
@@ -20,12 +36,6 @@ jobs:
       uses: actions/setup-go@v4
       with:
         go-version: '1.22'
-    
-    - name: inicia banco
-      run: docker compose up -d postgres
-
-    - name: Aguarda o banco ficar pronto
-      run: sleep 10 # Dá tempo para o Postgres inicializar os arquivos internos
 
     - name: Lint
       uses: golangci/golangci-lint-action@v6
@@ -34,4 +44,11 @@ jobs:
         args: controllers/ database/ models/ routes/
 
     - name: Test
-      run: DB_HOST=${{secrets.DB_HOST}} DB_PASSWORD=${{secrets.DB_PASSWORD}} DB_USER=${{secrets.DB_USER}} DB_NAME=${{secrets.DB_NAME}} DB_PORT=${{secrets.DB_PORT}} go test -v main_test.go
+      env:
+        # IMPORTANTE: Use 127.0.0.1 em vez de localhost
+        DB_HOST: 127.0.0.1
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_NAME: ${{ secrets.DB_NAME }}
+        DB_PORT: ${{ secrets.DB_PORT }}
+      run: go test -v main_test.go
