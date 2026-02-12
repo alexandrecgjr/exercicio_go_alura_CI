@@ -13,7 +13,6 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     
-    # O GitHub sobe o banco e garante que ele está saudável antes do teste
     services:
       postgres:
         image: postgres:latest
@@ -45,7 +44,6 @@ jobs:
 
     - name: Test
       env:
-        # IMPORTANTE: Use 127.0.0.1 em vez de localhost
         DB_HOST: 127.0.0.1
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         DB_USER: ${{ secrets.DB_USER }}
